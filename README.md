@@ -22,15 +22,17 @@ Example: To mint 100 NDAI, the contract locks ~100 DAI and also locks permanent 
 After you have NDAI you can stake it:
 
 - You choose any length (in days).
-- Longer stakes earn a higher multiplier (1× up to 3× at ~3641 days).
-- Base yield is approximately 3.69% per year before the multiplier.
-- You can extract the accrued yield early as **NEW** tokens without ending the stake.
-- When the stake matures you can end it and receive your principal plus any remaining yield.
+- Longer and larger stakes earn more (weighted by amount × length multiplier, 1× up to 3×).
+- Total yearly reward pool is 0.03% of all minted NDAI, distributed pro-rata by stake weight.
+- Example: 1,000,000 NDAI minted → 300 NDAI available for all stakers combined that year.
+- You can extract the accrued reward early as **NEW** tokens without ending the stake.
+- When the stake matures you can end it and receive your principal plus any remaining reward.
+- The rate is fixed at deployment and cannot be changed. Day count uses block.timestamp only.
 
 ### NEW Tokens
 NEW is a transferable ERC-20 time-claim token.
 
-- You extract NEW against the yield your stake has earned.
+- You extract NEW against the reward your stake has earned.
 - The NEW token’s maturity day matches the end day of your stake.
 - On or after that day, anyone holding the NEW can redeem it 1:1 for NDAI.
 
@@ -39,9 +41,9 @@ NEW is a transferable ERC-20 time-claim token.
 - Permanent hard-locked pDAI/PLSX LP on every mint
 - No admin keys that can withdraw the locked assets
 - No dollar peg and no redemption for DAI
-- Longer stakes earn more (multiplier)
-- Ongoing yield
-- Extract yield as NEW without ending the stake
+- Longer and larger stakes earn more
+- Reward pool is 0.03% of total minted NDAI per year
+- Extract reward as NEW without ending the stake
 
 ### Risks
 - NDAI has no peg and cannot be redeemed for DAI
@@ -57,4 +59,3 @@ NEW is a transferable ERC-20 time-claim token.
 ### Documentation
 - [Risk disclosure](outputs/NDAI-Risk-Disclosure.md)
 - [Integration guide](outputs/NDAI-Integration-Guide.md)
-
