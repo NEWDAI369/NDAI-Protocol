@@ -7,35 +7,36 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 interface INDAI {
-    function mintYield(address to, uint256 amount) external;
     function totalSupply() external view returns (uint256);
 }
 
 /// @title NDAIStaking
-/// @notice Stake NDAI and extract accrued yield as NEW tokens without ending the stake.
-/// @notice Longer stakes earn a higher multiplier (up to 3x).
+/// @notice Stake NDAI. Rewards are a share of a 0.03% yearly pool of total minted NDAI.
+/// @notice Longer and larger stakes earn more (amount × length multiplier).
+/// @notice Rate is fixed and cannot be changed. Day count uses block.timestamp only.
 /// @notice NEW tokens are redeemable 1:1 for NDAI on or after the stake's end day.
-/// @notice Base yield is approximately 3.69% per year before the length multiplier.
 contract NDAIStaking is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     IERC20 public immutable ndai;
     uint256 public immutable launchTime;
 
-    // ~3.69% per year
-    uint256 public constant DAILY_YIELD_PER_TOKEN = 101096000000000;
+    // 0.03% per year of total minted NDAI, distributed to weighted stakers
+    uint256 public constant YEARLY_RATE_BPS = 3; // 0.03% = 3 basis points
 
     struct StakeInstance {
         uint256 principal;
         uint256 startDay;
         uint256 endDay;
         uint256 extracted;
+        uint256 weight; // principal * multiplier
         bool active;
     }
 
     mapping(address => StakeInstance[]) public stakeInstances;
+    uint256 public totalWeight;
 
-    event StakeCreated(address indexed user, uint256 stakeId, uint256 amount, uint256 endDay);
+    event StakeCreated(address indexed user, uint256 stakeId, uint256 amount, uint256 endDay, uint256 weight);
     event YieldExtracted(address indexed user, uint256 stakeId, uint256 newAmount);
     event StakeEnded(address indexed user, uint256 stakeId, uint256 payout);
 
@@ -61,16 +62,22 @@ contract NDAIStaking is ReentrancyGuard {
         require(amount > 0 && lengthInDays >= 1, "Invalid");
         ndai.safeTransferFrom(msg.sender, address(this), amount);
 
+        uint256 multiplier = getMultiplier(lengthInDays);
+        uint256 weight = (amount * multiplier) / 1e18;
+
         uint256 start = currentDay();
         stakeInstances[msg.sender].push(StakeInstance({
             principal: amount,
             startDay: start,
             endDay: start + lengthInDays,
             extracted: 0,
+            weight: weight,
             active: true
         }));
 
-        emit StakeCreated(msg.sender, stakeInstances[msg.sender].length - 1, amount, start + lengthInDays);
+        totalWeight += weight;
+
+        emit StakeCreated(msg.sender, stakeInstances[msg.sender].length - 1, amount, start + lengthInDays, weight);
     }
 
     function extractNEW(uint256 stakeId, address newToken) external nonReentrant {
@@ -83,13 +90,16 @@ contract NDAIStaking is ReentrancyGuard {
         uint256 effectiveDay = dayNow > s.endDay ? s.endDay : dayNow;
         uint256 daysElapsed = effectiveDay > s.startDay ? effectiveDay - s.startDay : 0;
 
-        uint256 multiplier = getMultiplier(s.endDay - s.startDay);
-        uint256 accrued = (s.principal * DAILY_YIELD_PER_TOKEN * daysElapsed * multiplier) / 1e36;
+        uint256 totalMinted = INDAI(address(ndai)).totalSupply();
+        uint256 yearlyPool = (totalMinted * YEARLY_RATE_BPS) / 10000;
+        uint256 dailyPool = yearlyPool / 365;
+
+        uint256 userShare = totalWeight == 0 ? 0 : (dailyPool * s.weight) / totalWeight;
+        uint256 accrued = userShare * daysElapsed;
         uint256 available = accrued > s.extracted ? accrued - s.extracted : 0;
         require(available > 0, "Nothing");
 
         s.extracted += available;
-        INDAI(address(ndai)).mintYield(address(this), available);
         NEW(newToken).mint(msg.sender, available);
 
         emit YieldExtracted(msg.sender, stakeId, available);
@@ -101,18 +111,19 @@ contract NDAIStaking is ReentrancyGuard {
         require(currentDay() >= s.endDay, "Not matured");
 
         uint256 daysElapsed = s.endDay - s.startDay;
-        uint256 multiplier = getMultiplier(daysElapsed);
-        uint256 totalYield = (s.principal * DAILY_YIELD_PER_TOKEN * daysElapsed * multiplier) / 1e36;
+
+        uint256 totalMinted = INDAI(address(ndai)).totalSupply();
+        uint256 yearlyPool = (totalMinted * YEARLY_RATE_BPS) / 10000;
+        uint256 dailyPool = yearlyPool / 365;
+
+        uint256 userShare = totalWeight == 0 ? 0 : (dailyPool * s.weight) / totalWeight;
+        uint256 totalYield = userShare * daysElapsed;
         uint256 remainingYield = totalYield > s.extracted ? totalYield - s.extracted : 0;
 
-        uint256 mintedNow = 0;
-        if (remainingYield > 0) {
-            INDAI(address(ndai)).mintYield(address(this), remainingYield);
-            mintedNow = remainingYield;
-        }
-
-        uint256 payout = s.principal + mintedNow;
+        totalWeight -= s.weight;
         s.active = false;
+
+        uint256 payout = s.principal + remainingYield;
         ndai.safeTransfer(msg.sender, payout);
 
         emit StakeEnded(msg.sender, stakeId, payout);
