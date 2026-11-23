@@ -11,7 +11,7 @@ interface INDAI {
 }
 
 /// @title NDAIStaking
-/// @notice Stake NDAI. Rewards are a share of a 0.03% yearly pool of total minted NDAI.
+/// @notice Stake NDAI. Rewards are a share of a 0.369% yearly pool of total minted NDAI.
 /// @notice Longer and larger stakes earn more (amount × length multiplier).
 /// @notice Rate is fixed and cannot be changed. Day count uses block.timestamp only.
 /// @notice NEW tokens are redeemable 1:1 for NDAI on or after the stake's end day.
@@ -21,8 +21,8 @@ contract NDAIStaking is ReentrancyGuard {
     IERC20 public immutable ndai;
     uint256 public immutable launchTime;
 
-    // 0.03% per year of total minted NDAI, distributed to weighted stakers
-    uint256 public constant YEARLY_RATE_BPS = 3; // 0.03% = 3 basis points
+    // 0.369% per year of total minted NDAI, distributed to weighted stakers
+    uint256 public constant YEARLY_RATE_BPS = 369; // 0.369% = 369 basis points
 
     struct StakeInstance {
         uint256 principal;
