@@ -18,4 +18,9 @@ contract HEART is ERC20 {
         require(totalSupply() + amount <= MAX_SUPPLY, "Cap");
         _mint(to, amount);
     }
+
+    /// @notice Burns HEART from the caller's balance. Used by SeriesVault for early-withdrawal penalties.
+    function burn(uint256 amount) external {
+        _burn(msg.sender, amount);
+    }
 }
