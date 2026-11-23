@@ -23,8 +23,8 @@ After you have NDAI you can stake it:
 
 - You choose any length (in days).
 - Longer and larger stakes earn more (weighted by amount × length multiplier, 1× up to 3×).
-- Total yearly reward pool is 0.03% of all minted NDAI, distributed pro-rata by stake weight.
-- Example: 1,000,000 NDAI minted → 300 NDAI available for all stakers combined that year.
+- Total yearly reward pool is 0.369% of all minted NDAI, distributed pro-rata by stake weight.
+- Example: 1,000,000 NDAI minted → 3,690 NDAI available for all stakers combined that year.
 - You can extract the accrued reward early as **NEW** tokens without ending the stake.
 - When the stake matures you can end it and receive your principal plus any remaining reward.
 - The rate is fixed at deployment and cannot be changed. Day count uses block.timestamp only.
@@ -42,7 +42,7 @@ NEW is a transferable ERC-20 time-claim token.
 - No admin keys that can withdraw the locked assets
 - No dollar peg and no redemption for DAI
 - Longer and larger stakes earn more
-- Reward pool is 0.03% of total minted NDAI per year
+- Reward pool is 0.369% of total minted NDAI per year
 - Extract reward as NEW without ending the stake
 
 ### Risks
