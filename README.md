@@ -38,9 +38,15 @@ NEW is a transferable ERC-20 time-claim token.
 
 ### HEART, Vaults, and Farms
 - **HEART** is the farm and vault token. Total supply is capped at 1 billion. Only the farm contract can mint it.
-- Deposit HEART into a series vault (one per NEW maturity) to earn a pro-rata share of NEW fees from that series.
-- Provide NDAI / NEW-XXXX liquidity and deposit the LP tokens into HEARTFarm to earn HEART rewards.
-- Farm weights are set at deployment.
+- Deposit HEART into a series vault (one per NEW maturity) to earn a pro-rata share of NEW fees from that series. 90-day lock with linear early-withdrawal burn penalty.
+- HEARTFarm is fixed for exactly 7 pools: NDAI/NEW-1000 through NDAI/NEW-7000.
+- Emission schedule over 4 years (total 1 billion HEART):
+  - Year 1: 350M
+  - Year 2: 300M
+  - Year 3: 200M
+  - Year 4: 150M
+- Weights shift toward longer series each year. All 7 series stay active for the full 4 years.
+- No admin functions after deployment. Emissions stop after 4 years or when 1B HEART is minted.
 
 ### Key Rules
 - Permanent hard-locked DAI reserve on every mint
@@ -51,6 +57,7 @@ NEW is a transferable ERC-20 time-claim token.
 - Reward pool is 0.369% of total minted NDAI per year
 - Extract reward as NEW without ending the stake
 - HEART capped at 1 billion, farm-only mint
+- Farm is fixed at 7 series with declining emission and yearly weight shifts
 
 ### Risks
 - NDAI has no peg and cannot be redeemed for DAI
@@ -63,8 +70,8 @@ NEW is a transferable ERC-20 time-claim token.
 - `src/NDAI.sol` — minting
 - `src/NDAIStaking.sol` — staking and NEW tokens
 - `src/HEART.sol` — HEART token (1 billion cap, farm-only mint)
-- `src/SeriesVault.sol` — per-series vault for HEART deposits earning NEW fees
-- `src/HEARTFarm.sol` — farm for NDAI/NEW LP deposits earning HEART
+- `src/SeriesVault.sol` — per-series vault for HEART deposits earning NEW fees (90-day lock)
+- `src/HEARTFarm.sol` — fixed 7-series farm with 4-year declining emission
 
 ### Documentation
 - [Risk disclosure](outputs/NDAI-Risk-Disclosure.md)
