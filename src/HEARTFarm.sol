@@ -7,55 +7,127 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {HEART} from "./HEART.sol";
 
 /// @title HEARTFarm
-/// @notice Deposit NDAI/NEW-XXXX LP tokens to earn HEART. Weights fixed at deployment.
-/// @notice Only this contract can mint HEART (capped at 1 billion).
+/// @notice Fixed 7-pool farm for NDAI/NEW-1000 through NDAI/NEW-7000.
+/// @notice Declining emission over 4 years. Weights shift toward longer series each year.
+/// @notice No admin after deployment. Emissions stop after 4 years or when 1B HEART is minted.
 contract HEARTFarm is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     HEART public immutable heart;
 
+    uint256 public constant TOTAL_EMISSION = 1_000_000_000 ether;
+    uint256 public constant YEAR = 365 days;
+    uint256 public immutable startTime;
+    uint256 public immutable endTime;
+
+    // Yearly emission amounts (ether)
+    uint256[4] public emissionSchedule = [
+        350_000_000 ether,
+        300_000_000 ether,
+        200_000_000 ether,
+        150_000_000 ether
+    ];
+
+    // Weights per year (sum = 100). Index 0 = NEW-1000 ... Index 6 = NEW-7000
+    uint8[7][4] public weightSchedule = [
+        [8, 10, 12, 14, 16, 18, 22], // Year 1
+        [6,  8, 10, 13, 16, 20, 27], // Year 2
+        [5,  6,  8, 11, 15, 22, 33], // Year 3
+        [4,  5,  6,  9, 13, 24, 39]  // Year 4
+    ];
+
     struct Pool {
         IERC20 lpToken;
-        uint256 allocPoint;
-        uint256 lastRewardBlock;
+        uint256 lastRewardTime;
         uint256 accHeartPerShare;
     }
 
-    Pool[] public pools;
-    uint256 public totalAllocPoint;
-    uint256 public heartPerBlock;
-    uint256 public startBlock;
+    Pool[7] public pools;
 
-    mapping(uint256 => mapping(address => uint256)) public userInfo; // poolId => user => amount
-    mapping(uint256 => mapping(address => uint256)) public rewardDebt;
+    mapping(uint256 => mapping(address => uint256)) public userInfo;   // pid => user => amount
+    mapping(uint256 => mapping(address => uint256)) public rewardDebt; // pid => user => rewardDebt
 
-    event PoolAdded(uint256 indexed pid, address lpToken, uint256 allocPoint);
     event Deposited(address indexed user, uint256 indexed pid, uint256 amount);
     event Withdrawn(address indexed user, uint256 indexed pid, uint256 amount);
     event Harvested(address indexed user, uint256 indexed pid, uint256 amount);
 
-    constructor(uint256 _heartPerBlock, uint256 _startBlock) {
+    constructor(address[7] memory lpTokens, uint256 _startTime) {
+        require(_startTime > 0, "Invalid start");
         heart = new HEART(address(this));
-        heartPerBlock = _heartPerBlock;
-        startBlock = _startBlock;
+        startTime = _startTime;
+        endTime = _startTime + (4 * YEAR);
+
+        for (uint256 i; i < 7; ++i) {
+            require(lpTokens[i] != address(0), "Zero LP");
+            pools[i] = Pool({
+                lpToken: IERC20(lpTokens[i]),
+                lastRewardTime: _startTime,
+                accHeartPerShare: 0
+            });
+        }
     }
 
-    function addPool(IERC20 lpToken, uint256 allocPoint) external {
-        // In production this should be restricted or called only once at deployment.
-        // For this version it is open so pools can be added before launch.
-        pools.push(Pool({
-            lpToken: lpToken,
-            allocPoint: allocPoint,
-            lastRewardBlock: block.number > startBlock ? block.number : startBlock,
-            accHeartPerShare: 0
-        }));
-        totalAllocPoint += allocPoint;
-        emit PoolAdded(pools.length - 1, address(lpToken), allocPoint);
+    function currentYear() public view returns (uint256) {
+        if (block.timestamp < startTime) return 0;
+        uint256 elapsed = block.timestamp - startTime;
+        uint256 y = elapsed / YEAR;
+        return y > 3 ? 3 : y;
+    }
+
+    function _weight(uint256 pid, uint256 year) internal view returns (uint256) {
+        return weightSchedule[year][pid];
+    }
+
+    function _emissionPerSecond(uint256 year) internal view returns (uint256) {
+        return emissionSchedule[year] / YEAR;
+    }
+
+    function _updatePool(uint256 pid) internal {
+        Pool storage pool = pools[pid];
+        uint256 currentTime = block.timestamp > endTime ? endTime : block.timestamp;
+        if (currentTime <= pool.lastRewardTime) return;
+
+        uint256 lpSupply = pool.lpToken.balanceOf(address(this));
+        if (lpSupply == 0) {
+            pool.lastRewardTime = currentTime;
+            return;
+        }
+
+        uint256 reward = _calculateReward(pool.lastRewardTime, currentTime, pid);
+        if (reward > 0) {
+            pool.accHeartPerShare += (reward * 1e18) / lpSupply;
+        }
+        pool.lastRewardTime = currentTime;
+    }
+
+    function _calculateReward(uint256 from, uint256 to, uint256 pid) internal view returns (uint256) {
+        uint256 reward;
+        uint256 cursor = from;
+
+        while (cursor < to) {
+            uint256 year = (cursor - startTime) / YEAR;
+            if (year > 3) break;
+
+            uint256 yearEnd = startTime + ((year + 1) * YEAR);
+            uint256 segmentEnd = to < yearEnd ? to : yearEnd;
+            if (segmentEnd > endTime) segmentEnd = endTime;
+
+            uint256 duration = segmentEnd - cursor;
+            if (duration > 0) {
+                uint256 weight = _weight(pid, year);
+                uint256 totalWeight = 100;
+                reward += (duration * _emissionPerSecond(year) * weight) / totalWeight;
+            }
+            cursor = segmentEnd;
+        }
+        return reward;
     }
 
     function deposit(uint256 pid, uint256 amount) external nonReentrant {
+        require(pid < 7, "Invalid pid");
         Pool storage pool = pools[pid];
         _updatePool(pid);
+
         if (userInfo[pid][msg.sender] > 0) {
             uint256 pending = (userInfo[pid][msg.sender] * pool.accHeartPerShare) / 1e18 - rewardDebt[pid][msg.sender];
             if (pending > 0) {
@@ -63,46 +135,53 @@ contract HEARTFarm is ReentrancyGuard {
                 emit Harvested(msg.sender, pid, pending);
             }
         }
+
         if (amount > 0) {
             pool.lpToken.safeTransferFrom(msg.sender, address(this), amount);
             userInfo[pid][msg.sender] += amount;
         }
+
         rewardDebt[pid][msg.sender] = (userInfo[pid][msg.sender] * pool.accHeartPerShare) / 1e18;
         emit Deposited(msg.sender, pid, amount);
     }
 
     function withdraw(uint256 pid, uint256 amount) external nonReentrant {
+        require(pid < 7, "Invalid pid");
         require(userInfo[pid][msg.sender] >= amount, "Insufficient");
         Pool storage pool = pools[pid];
         _updatePool(pid);
+
         uint256 pending = (userInfo[pid][msg.sender] * pool.accHeartPerShare) / 1e18 - rewardDebt[pid][msg.sender];
         if (pending > 0) {
             heart.mint(msg.sender, pending);
             emit Harvested(msg.sender, pid, pending);
         }
+
         if (amount > 0) {
             userInfo[pid][msg.sender] -= amount;
             pool.lpToken.safeTransfer(msg.sender, amount);
         }
+
         rewardDebt[pid][msg.sender] = (userInfo[pid][msg.sender] * pool.accHeartPerShare) / 1e18;
         emit Withdrawn(msg.sender, pid, amount);
     }
 
-    function _updatePool(uint256 pid) internal {
+    function pendingHeart(uint256 pid, address user) external view returns (uint256) {
+        if (pid >= 7) return 0;
         Pool storage pool = pools[pid];
-        if (block.number <= pool.lastRewardBlock) return;
+        uint256 acc = pool.accHeartPerShare;
         uint256 lpSupply = pool.lpToken.balanceOf(address(this));
-        if (lpSupply == 0 || totalAllocPoint == 0) {
-            pool.lastRewardBlock = block.number;
-            return;
+
+        if (block.timestamp > pool.lastRewardTime && lpSupply > 0) {
+            uint256 currentTime = block.timestamp > endTime ? endTime : block.timestamp;
+            uint256 reward = _calculateReward(pool.lastRewardTime, currentTime, pid);
+            acc += (reward * 1e18) / lpSupply;
         }
-        uint256 multiplier = block.number - pool.lastRewardBlock;
-        uint256 heartReward = (multiplier * heartPerBlock * pool.allocPoint) / totalAllocPoint;
-        pool.accHeartPerShare += (heartReward * 1e18) / lpSupply;
-        pool.lastRewardBlock = block.number;
+
+        return (userInfo[pid][user] * acc) / 1e18 - rewardDebt[pid][user];
     }
 
-    function poolLength() external view returns (uint256) {
-        return pools.length;
+    function poolLength() external pure returns (uint256) {
+        return 7;
     }
 }
