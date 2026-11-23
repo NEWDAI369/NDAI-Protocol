@@ -36,6 +36,12 @@ NEW is a transferable ERC-20 time-claim token.
 - The NEW token’s maturity day matches the end day of your stake.
 - On or after that day, anyone holding the NEW can redeem it 1:1 for NDAI.
 
+### HEART, Vaults, and Farms
+- **HEART** is the farm and vault token. Total supply is capped at 1 billion. Only the farm contract can mint it.
+- Deposit HEART into a series vault (one per NEW maturity) to earn a pro-rata share of NEW fees from that series.
+- Provide NDAI / NEW-XXXX liquidity and deposit the LP tokens into HEARTFarm to earn HEART rewards.
+- Farm weights are set at deployment.
+
 ### Key Rules
 - Permanent hard-locked DAI reserve on every mint
 - Permanent hard-locked pDAI/PLSX LP on every mint
@@ -44,6 +50,7 @@ NEW is a transferable ERC-20 time-claim token.
 - Longer and larger stakes earn more
 - Reward pool is 0.369% of total minted NDAI per year
 - Extract reward as NEW without ending the stake
+- HEART capped at 1 billion, farm-only mint
 
 ### Risks
 - NDAI has no peg and cannot be redeemed for DAI
@@ -55,6 +62,9 @@ NEW is a transferable ERC-20 time-claim token.
 ### Contracts
 - `src/NDAI.sol` — minting
 - `src/NDAIStaking.sol` — staking and NEW tokens
+- `src/HEART.sol` — HEART token (1 billion cap, farm-only mint)
+- `src/SeriesVault.sol` — per-series vault for HEART deposits earning NEW fees
+- `src/HEARTFarm.sol` — farm for NDAI/NEW LP deposits earning HEART
 
 ### Documentation
 - [Risk disclosure](outputs/NDAI-Risk-Disclosure.md)
