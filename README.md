@@ -7,6 +7,9 @@ NDAI is a PulseChain token (chain ID 369). Users mint NDAI by paying pDAI. The p
 ### Important
 The DAI locked during minting cannot be withdrawn by anyone. It serves only as a public display of mint volume. NDAI has no claim on the reserve.
 
+### Launch
+Minting is disabled until December 25, 2026. The contract reverts with `LaunchPending` before that date. After December 25, 2026 minting becomes available. The date is set at deployment and cannot be changed.
+
 ### How Minting Works
 1. You call `mintWithPdai` and send pDAI.
 2. The contract swaps most of the pDAI for bridged DAI and locks that DAI forever.
@@ -58,6 +61,7 @@ NEW is a transferable ERC-20 time-claim token.
 - Extract reward as NEW without ending the stake
 - HEART capped at 1 billion, farm-only mint
 - Farm is fixed at 7 series with declining emission and yearly weight shifts
+- Minting opens on December 25, 2026
 
 ### Risks
 - NDAI has no peg and cannot be redeemed for DAI
