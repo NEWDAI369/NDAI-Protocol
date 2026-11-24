@@ -1,8 +1,12 @@
 # NDAI Protocol
 
-NDAI is a PulseChain token (chain ID 369). Users mint NDAI by paying pDAI. The protocol permanently locks a matching amount of bridged DAI in a non-withdrawable reserve and adds pDAI/PLSX liquidity that is also locked forever. NDAI cannot be redeemed for DAI and has no dollar peg.
+**Anyone may compile and deploy these contracts without permission from the original author.**
 
-**Use at your own risk.** You can lose all assets you commit. There is no peg, no DAI redemption right, and yield is not guaranteed.
+Each deployment is independent. The original author has no control over, and accepts no responsibility for, any deployed instance (bugs, losses, misconfiguration, or any other outcome).
+
+**Use at your own risk.** You are solely responsible for reviewing and testing before deploying or interacting. You can lose all assets you commit. There is no peg, no DAI redemption right, and yield is not guaranteed.
+
+NDAI is a PulseChain token (chain ID 369). Users mint NDAI by paying pDAI. The protocol permanently locks a matching amount of bridged DAI in a non-withdrawable reserve and adds pDAI/PLSX liquidity that is also locked forever. NDAI cannot be redeemed for DAI and has no dollar peg.
 
 ### Important
 The DAI locked during minting cannot be withdrawn by anyone. It serves only as a public display of mint volume. NDAI has no claim on the reserve.
@@ -80,5 +84,6 @@ NEW is a transferable ERC-20 time-claim token.
 ### Documentation
 - [Risk disclosure](outputs/NDAI-Risk-Disclosure.md)
 - [Integration guide](outputs/NDAI-Integration-Guide.md)
+- [Deployment notes](DEPLOYMENT.md)
 
-I haven't launched this year, so it's up to you all to do so. You have my word that you can launch this without my permission. Thank you!
+Anyone may deploy. See the MIT LICENSE for full terms. The original author is not liable for any deployed instance.
