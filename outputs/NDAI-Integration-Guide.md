@@ -8,6 +8,8 @@ Call `mintWithPdai` on the NDAI contract. The user pays pDAI. The contract:
 
 NDAI is not redeemable for DAI.
 
+Minting is disabled until December 25, 2026. The contract reverts with `LaunchPending` before that date. After December 25, 2026 minting becomes available. The date is set at deployment and cannot be changed.
+
 ## Staking
 1. Approve NDAI to the staking contract.
 2. Call `createStake(amount, lengthInDays)`.
@@ -19,4 +21,4 @@ NDAI is not redeemable for DAI.
 NEW is an ERC-20. After its maturity day, holders can call `redeem` to burn NEW and receive NDAI 1:1.
 
 ## Launch
-Minting is disabled until the `LAUNCH_TIME` set at deployment. Staking day counting starts from the same timestamp.
+Minting opens on December 25, 2026. Before that date calls to `mintWithPdai` revert with `LaunchPending`. Staking day counting starts from the same timestamp set at deployment.
