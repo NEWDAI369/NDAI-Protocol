@@ -85,5 +85,6 @@ NEW is a transferable ERC-20 time-claim token.
 - [Risk disclosure](outputs/NDAI-Risk-Disclosure.md)
 - [Integration guide](outputs/NDAI-Integration-Guide.md)
 - [Deployment notes](DEPLOYMENT.md)
+- [Deployment script](script/Deploy.s.sol)
 
-Anyone may deploy. See the MIT LICENSE for full terms. The original author is not liable for any deployed instance.
+Anyone may deploy. See the MIT LICENSE for full terms. The original author is not liable for any deployed instance. Review and test before use.
