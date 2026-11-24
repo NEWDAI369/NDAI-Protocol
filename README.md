@@ -80,3 +80,5 @@ NEW is a transferable ERC-20 time-claim token.
 ### Documentation
 - [Risk disclosure](outputs/NDAI-Risk-Disclosure.md)
 - [Integration guide](outputs/NDAI-Integration-Guide.md)
+
+Havent launched this yet so its up to you people to do so. Thank you 
