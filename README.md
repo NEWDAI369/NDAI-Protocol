@@ -1,3 +1,14 @@
+> [!WARNING]
+> **This project is no longer maintained and will not receive updates.**
+>
+> The contracts have known, unfixed bugs. **Do not deploy or use them as-is.** Anyone who deploys must fix these issues first:
+>
+> 1. **Staking rewards are not funded.** `NDAIStaking.endStake` and `NEW.redeem` pay rewards with `ndai.safeTransfer` from the staking contract's own NDAI balance, which is other stakers' principal. Nothing is minted for rewards, so the last stakers to exit can be left short. Rewards should be minted (for example through `NDAI.mintYield`) or paid from a separately funded pool.
+> 2. **Reward shares can be gamed.** Each stake's reward is computed from the *current* `totalWeight` multiplied by all days elapsed, so past rewards are repriced whenever stakes start or end. Users can time extracts or `endStake` to take more than their share. Use a reward-per-weight accumulator that checkpoints on every stake change.
+> 3. **No tests cover the staking reward logic.** Add tests and an independent audit before any deployment.
+>
+> Once deployed, contracts cannot be changed, so these fixes must land **before** anyone runs `script/Deploy.s.sol`.
+
 # NDAI Protocol
 
 **Anyone may compile and deploy these contracts without permission from the original author.**
